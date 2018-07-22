@@ -43,7 +43,7 @@ func NewRequest(id string, method string, params interface{}) *Request {
 
 // Run takes as input a io.Reader (like http.Request.Body() for example) and returns a Response
 func (runner *Runner) Run(body io.Reader) *Response {
-	request := &Request{}
+	request := Request{}
 	err := json.NewDecoder(body).Decode(&request)
 	if err != nil || request.JsonRPC != "2.0" {
 		return NewResponseWithError(request.Id, Errors.InvalidRequest)
@@ -59,4 +59,35 @@ func (runner *Runner) Run(body io.Reader) *Response {
 		return NewResponseWithError(request.Id, status)
 	}
 	return NewResponse(request.Id, result)
+}
+
+// Batch takes as input a io.Reader containing multiple Requests and returns an array of Responses
+func (runner *Runner) Batch(body io.Reader) []*Response {
+	requests := make([]Request, 0)
+	err := json.NewDecoder(body).Decode(&requests)
+	if err != nil {
+		return []*Response{NewResponseWithError("", Errors.InvalidRequest)}
+	}
+
+	responses := make([]*Response, len(requests))
+	for index, request := range requests {
+		if request.JsonRPC != "2.0" {
+			responses[index] = NewResponseWithError(request.Id, Errors.InvalidRequest)
+			continue
+		}
+
+		fn, ok := runner.methods[request.Method]
+		if !ok {
+			responses[index] = NewResponseWithError(request.Id, Errors.NotFound)
+			continue
+		}
+
+		result, status := fn(request.Params)
+		if status.Code != 0 {
+			responses[index] = NewResponseWithError(request.Id, status)
+			continue
+		}
+		responses[index] = NewResponse(request.Id, result)
+	}
+	return responses
 }

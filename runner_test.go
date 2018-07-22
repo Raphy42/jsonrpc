@@ -63,3 +63,26 @@ func TestRunner_Run(t *testing.T) {
 		a.Equal(test.Expected, response, test.Message)
 	}
 }
+
+func TestRunner_Batch(t *testing.T) {
+	a := assert.New(t)
+	runner := NewRunner(commands)
+
+	requests := make([]*Request, len(runnerRunTests))
+	expectedResponses := make([]*Response, len(runnerRunTests))
+	for index, test := range runnerRunTests {
+		requests[index] = test.Input
+		expectedResponses[index] = test.Expected
+	}
+
+	buffer, err := json.Marshal(requests)
+	if err != nil {
+		a.NoError(err, "failed serialisation for batch requests")
+		return
+	}
+	responses := runner.Batch(bytes.NewReader(buffer))
+
+	for index, response := range responses {
+		a.Equal(expectedResponses[index], response, runnerRunTests[index].Message)
+	}
+}
