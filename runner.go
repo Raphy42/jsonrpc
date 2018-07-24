@@ -5,9 +5,11 @@ import (
 	"encoding/json"
 )
 
-// MethodFunc defines a handler function which will executes a method with serialized params from
-// a Request
-type MethodFunc func(params []byte) (interface{}, Error)
+// MethodFunc defines a handler function which will executes a method with serialized a user defined context and params
+// - context can be whatever you want
+// - params is a JSON serialized Request.Params
+// returns a Result and an Error
+type MethodFunc func(context interface{}, params []byte) (interface{}, Error)
 
 // MethodMap stores MethodFunc indexed by their method name
 type MethodMap map[string]MethodFunc
@@ -41,8 +43,9 @@ func NewRequest(id string, method string, params interface{}) *Request {
 	return &Request{JsonRPC: "2.0", Id: id, Method: method, Params: buffer}
 }
 
-// Run takes as input a io.Reader (like http.Request.Body() for example) and returns a Response
-func (runner *Runner) Run(body io.Reader) *Response {
+// Run takes as input a user defined context and an io.Reader (like http.Request.Body() for example)
+// returns a Response
+func (runner *Runner) Run(context interface{}, body io.Reader) *Response {
 	request := Request{}
 	err := json.NewDecoder(body).Decode(&request)
 	if err != nil || request.JsonRPC != "2.0" {
@@ -54,15 +57,16 @@ func (runner *Runner) Run(body io.Reader) *Response {
 		return NewResponseWithError(request.Id, Errors.NotFound)
 	}
 
-	result, status := fn(request.Params)
+	result, status := fn(context, request.Params)
 	if status.Code != 0 {
 		return NewResponseWithError(request.Id, status)
 	}
 	return NewResponse(request.Id, result)
 }
 
-// Batch takes as input a io.Reader containing multiple Requests and returns an array of Responses
-func (runner *Runner) Batch(body io.Reader) []*Response {
+// Batch takes as input a user defined context and an io.Reader containing multiple Requests
+// returns an array of Responses
+func (runner *Runner) Batch(context interface{}, body io.Reader) []*Response {
 	requests := make([]Request, 0)
 	err := json.NewDecoder(body).Decode(&requests)
 	if err != nil {
@@ -82,7 +86,7 @@ func (runner *Runner) Batch(body io.Reader) []*Response {
 			continue
 		}
 
-		result, status := fn(request.Params)
+		result, status := fn(context, request.Params)
 		if status.Code != 0 {
 			responses[index] = NewResponseWithError(request.Id, status)
 			continue

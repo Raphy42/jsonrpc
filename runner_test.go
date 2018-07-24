@@ -15,7 +15,7 @@ var (
 	}{
 		{
 			Input:    NewRequest("toto", "accumulate", []int{1, 2, 3, 4, 5}),
-			Expected: NewResponse("toto", 15),
+			Expected: NewResponse("toto", 45),
 			Message:  "valid request",
 		},
 		{
@@ -34,13 +34,13 @@ var (
 		},
 	}
 	commands = MethodMap{
-		"accumulate": func(params []byte) (interface{}, Error) {
+		"accumulate": func(context interface{}, params []byte) (interface{}, Error) {
 			args := make([]int, 0)
 			err := json.Unmarshal(params, &args)
 			if err != nil {
 				return nil, Errors.InvalidParams
 			}
-			acc := 0
+			acc := context.(int)
 			for _, arg := range args {
 				acc += arg
 			}
@@ -59,7 +59,7 @@ func TestRunner_Run(t *testing.T) {
 			a.NoError(err, "failed serialisation for " + test.Message)
 			continue
 		}
-		response := runner.Run(bytes.NewReader(buffer))
+		response := runner.Run(30, bytes.NewReader(buffer))
 		a.Equal(test.Expected, response, test.Message)
 	}
 }
@@ -80,7 +80,7 @@ func TestRunner_Batch(t *testing.T) {
 		a.NoError(err, "failed serialisation for batch requests")
 		return
 	}
-	responses := runner.Batch(bytes.NewReader(buffer))
+	responses := runner.Batch(30, bytes.NewReader(buffer))
 
 	for index, response := range responses {
 		a.Equal(expectedResponses[index], response, runnerRunTests[index].Message)
