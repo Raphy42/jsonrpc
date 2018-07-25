@@ -31,7 +31,7 @@ func NewResponse(id string, result interface{}) *Response {
 
 // NewResponseWithError is an helper to create Response with an Error
 func NewResponseWithError(id string, error Error) *Response {
-	return &Response{JsonRPC: "2.0", Id: id, Error: error}
+	return &Response{JsonRPC: "2.0", Id: id, Error: &error}
 }
 
 // NewRequest is an helper to create Request

@@ -94,11 +94,11 @@ type Response struct {
 
 	// it must be the same as the value of the id member in the Request object
 	// if there was an error in detecting the id in the Request object, it must be equal to ""
-	Id string `json:"id,omitempty"`
+	Id string `json:"id"`
 
 	// required on success, result of the executed command on server
 	Result interface{} `json:"result,omitempty"`
 
 	// required on error or omitted
-	Error Error `json:"error,omitempty"`
+	Error *Error `json:"error,omitempty"`
 }
